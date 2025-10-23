@@ -67,11 +67,11 @@ where
         }
     }
 
-    pub fn deref<'a>(&self) -> &'a T {
+    unsafe pub fn deref<'a>(&self) -> &'a T {
         unsafe { self.ptr.as_ref() }
     }
 
-    pub fn deref_mut<'a>(&mut self) -> &'a mut T {
+    unsafe pub fn deref_mut<'a>(&mut self) -> &'a mut T {
         unsafe { self.ptr.as_mut() }
     }
 }
@@ -114,7 +114,7 @@ where
         }
     }
 
-    pub fn as_ref(self) -> &'a T {
+    unsafe pub fn as_ref(self) -> &'a T {
         unsafe { self.ptr.as_ref() }
     }
 }
@@ -150,7 +150,7 @@ where
         }
     }
 
-    pub fn as_mut(&mut self) -> &'a mut T {
+    unsafe pub fn as_mut(&mut self) -> &'a mut T {
         unsafe { self.ptr.as_mut() }
     }
 }
