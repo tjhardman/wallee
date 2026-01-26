@@ -383,7 +383,7 @@ impl Error {
     /// }
     /// ```
     #[cold]
-    pub fn chain(&self) -> Chain {
+    pub fn chain(&'_ self) -> Chain<'_> {
         unsafe { ErrorImpl::chain(self.inner.as_ref()) }
     }
 
@@ -597,7 +597,7 @@ unsafe fn object_drop_front<E>(e: OwnPtr<ErrorImpl>, target: TypeId) {
 }
 
 // Safety: requires layout of *e to match ErrorImpl<E>.
-unsafe fn object_ref<E>(e: RefPtr<ErrorImpl>) -> &(dyn StdError + Send + Sync + 'static)
+unsafe fn object_ref<E>(e: RefPtr<'_, ErrorImpl>) -> &'_ (dyn StdError + Send + Sync + 'static)
 where
     E: StdError + Send + Sync + 'static,
 {
@@ -606,7 +606,7 @@ where
 }
 
 // Safety: requires layout of *e to match ErrorImpl<E>.
-unsafe fn object_mut<E>(e: MutPtr<ErrorImpl>) -> &mut (dyn StdError + Send + Sync + 'static)
+unsafe fn object_mut<E>(e: MutPtr<'_, ErrorImpl>) -> &'_ mut (dyn StdError + Send + Sync + 'static)
 where
     E: StdError + Send + Sync + 'static,
 {
@@ -654,7 +654,7 @@ where
     }
 }
 
-fn no_backtrace(e: RefPtr<ErrorImpl>) -> Option<&Backtrace> {
+fn no_backtrace(e: RefPtr<'_, ErrorImpl>) -> Option<&'_ Backtrace> {
     let _ = e;
     None
 }
@@ -736,7 +736,7 @@ where
 
 // Safety: requires layout of *e to match ErrorImpl<ContextError<C, Error>>.
 #[allow(clippy::unnecessary_wraps)]
-unsafe fn context_backtrace<C>(e: RefPtr<ErrorImpl>) -> Option<&Backtrace>
+unsafe fn context_backtrace<C>(e: RefPtr<'_, ErrorImpl>) -> Option<&'_ Backtrace>
 where
     C: 'static,
 {
@@ -774,7 +774,7 @@ pub(crate) struct ContextError<C, E> {
 }
 
 impl<E> ErrorImpl<E> {
-    fn erase(&self) -> RefPtr<ErrorImpl> {
+    fn erase(&'_ self) -> RefPtr<'_, ErrorImpl> {
         // Erase the concrete type of E but preserve the vtable in self.vtable
         // for manipulating the resulting thin pointer. This is analogous to an
         // unsize coercion.
@@ -783,15 +783,17 @@ impl<E> ErrorImpl<E> {
 }
 
 impl ErrorImpl {
-    pub(crate) unsafe fn error(this: RefPtr<Self>) -> &(dyn StdError + Send + Sync + 'static) {
+    pub(crate) unsafe fn error(
+        this: RefPtr<'_, Self>,
+    ) -> &'_ (dyn StdError + Send + Sync + 'static) {
         // Use vtable to attach E's native StdError vtable for the right
         // original type E.
         unsafe { (vtable(this.ptr).object_ref)(this) }
     }
 
     pub(crate) unsafe fn error_mut(
-        this: MutPtr<Self>,
-    ) -> &mut (dyn StdError + Send + Sync + 'static) {
+        this: MutPtr<'_, Self>,
+    ) -> &'_ mut (dyn StdError + Send + Sync + 'static) {
         // Use vtable to attach E's native StdError vtable for the right
         // original type E.
         unsafe { (vtable(this.ptr).object_mut)(this) }
@@ -801,7 +803,7 @@ impl ErrorImpl {
     //     unsafe { (vtable(this.ptr).object_super)(this) }
     // }
 
-    pub(crate) unsafe fn backtrace(this: RefPtr<Self>) -> &Backtrace {
+    pub(crate) unsafe fn backtrace(this: RefPtr<'_, Self>) -> &'_ Backtrace {
         // This unwrap can only panic if the underlying error's backtrace method
         // is nondeterministic, which would only happen in maliciously
         // constructed code.
@@ -817,7 +819,7 @@ impl ErrorImpl {
             .expect("backtrace capture failed")
     }
 
-    pub(crate) unsafe fn location(this: RefPtr<Self>) -> &Location {
+    pub(crate) unsafe fn location(this: RefPtr<'_, Self>) -> &'_ Location {
         &this.as_ref().location
     }
 

@@ -53,14 +53,14 @@ where
         self.ptr.as_ptr()
     }
 
-    pub fn as_ref(&self) -> RefPtr<T> {
+    pub fn as_ref(&'_ self) -> RefPtr<'_, T> {
         RefPtr {
             ptr: self.ptr,
             lifetime: PhantomData,
         }
     }
 
-    pub fn as_mut(&mut self) -> MutPtr<T> {
+    pub fn as_mut(&'_ mut self) -> MutPtr<'_, T> {
         MutPtr {
             ptr: self.ptr,
             lifetime: PhantomData,
