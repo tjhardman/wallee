@@ -16,7 +16,7 @@ futures = { version = "0.3", default-features = false }
 rustversion = "1.0"
 syn = { version = "2.0", features = ["full"] }
 thiserror = "2.0.12"
-anyhow = "1.0.98"
+# anyhow = "1.0.98"
 trybuild = { version = "1.0.110", features = ["diff"] }
 
 [lib]
