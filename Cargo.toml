@@ -5,11 +5,11 @@ authors = ["David Tolnay <dtolnay@gmail.com>", "Todd Hardman <todd.hardman@gmail
 categories = ["rust-patterns", "no-std"]
 description = "Flexible concrete Error type built on std::error::Error with caller location tracking"
 documentation = "https://docs.rs/wallee"
-edition = "2018"
+edition = "2024"
 keywords = ["error", "error-handling"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tjhardman/wallee"
-rust-version = "1.76"
+# rust-version = "1.85"
 
 [dev-dependencies]
 futures = { version = "0.3", default-features = false }
