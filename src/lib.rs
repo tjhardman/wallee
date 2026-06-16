@@ -498,15 +498,13 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 ///         # unreachable!()
 ///     }
 ///
-///     fn main() {
-///         let err = do_it().unwrap_err();
-///         if let Some(e) = err.downcast_ref::<SuspiciousError>() {
-///             // If helper() returned SuspiciousError, this downcast will
-///             // correctly succeed even with the context in between.
-///             # return;
-///         }
-///         # panic!("expected downcast to succeed");
+///     let err = do_it().unwrap_err();
+///     if let Some(e) = err.downcast_ref::<SuspiciousError>() {
+///         // If helper() returned SuspiciousError, this downcast will
+///         // correctly succeed even with the context in between.
+///         # return;
 ///     }
+///     # panic!("expected downcast to succeed");
 ///     ```
 ///
 ///   - **Attaching context whose type is used in downcasts onto errors whose
@@ -538,16 +536,14 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 ///         # unreachable!()
 ///     }
 ///
-///     fn main() {
-///         let err = do_it().unwrap_err();
-///         if let Some(e) = err.downcast_ref::<HelperFailed>() {
-///             // If helper failed, this downcast will succeed because
-///             // HelperFailed is the context that has been attached to
-///             // that error.
-///             # return;
-///         }
-///         # panic!("expected downcast to succeed");
+///     let err = do_it().unwrap_err();
+///     if let Some(e) = err.downcast_ref::<HelperFailed>() {
+///         // If helper failed, this downcast will succeed because
+///         // HelperFailed is the context that has been attached to
+///         // that error.
+///         # return;
 ///     }
+///     # panic!("expected downcast to succeed");
 ///     ```
 pub trait Context<T, E>: context::private::Sealed {
     /// Wrap the error value with additional context.
