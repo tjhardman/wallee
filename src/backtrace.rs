@@ -12,6 +12,21 @@ macro_rules! backtrace {
     };
 }
 
+#[cfg(error_generic_member_access)]
+macro_rules! backtrace_if_absent {
+    ($err:expr) => {
+        match std::error::request_ref::<std::backtrace::Backtrace>(
+            $err as &dyn std::error::Error,
+        ) {
+            // The underlying error already carries a backtrace, so don't
+            // capture a redundant one here.
+            Some(_) => None,
+            None => backtrace!(),
+        }
+    };
+}
+
+#[cfg(not(error_generic_member_access))]
 macro_rules! backtrace_if_absent {
     ($err:expr) => {
         backtrace!()

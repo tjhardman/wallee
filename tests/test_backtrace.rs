@@ -38,3 +38,24 @@ fn test_provide_backtrace_through_thiserror() {
     let dyn_error: &(dyn StdError + 'static) = &outer;
     assert!(request_ref::<Backtrace>(dyn_error).is_some());
 }
+
+// When the wrapped error already carries a backtrace (via the provider API),
+// wallee defers to it instead of capturing a redundant one. Error::backtrace
+// then returns that same underlying backtrace, not a freshly captured copy.
+#[cfg(error_generic_member_access)]
+#[test]
+fn test_backtrace_deferred_to_source() {
+    use std::backtrace::Backtrace;
+
+    #[derive(thiserror::Error, Debug)]
+    #[error("underlying")]
+    struct HasBacktrace {
+        backtrace: Backtrace,
+    }
+
+    let error = wallee::Error::new(HasBacktrace {
+        backtrace: Backtrace::force_capture(),
+    });
+    let underlying: &HasBacktrace = error.downcast_ref().unwrap();
+    assert!(std::ptr::eq(error.backtrace(), &underlying.backtrace));
+}
