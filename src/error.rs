@@ -666,13 +666,24 @@ where
     E: 'static,
 {
     if TypeId::of::<C>() == target {
+        // Take a pointer to the C field without going through a shared
+        // reference, which would create a SharedReadOnly tag and make a later
+        // downcast_mut of the returned pointer undefined behavior.
         let unerased_ref = e.cast::<ErrorImpl<ContextError<C, E>>>();
-        let unerased = unerased_ref.deref();
-        Some(OwnPtr::from_raw(NonNull::from(&unerased._object.context)).cast::<()>())
+        Some(
+            OwnPtr::from_raw(unsafe {
+                NonNull::new_unchecked(ptr::addr_of!((*unerased_ref.as_ptr())._object.context) as *mut C)
+            })
+            .cast::<()>(),
+        )
     } else if TypeId::of::<E>() == target {
         let unerased_ref = e.cast::<ErrorImpl<ContextError<C, E>>>();
-        let unerased = unerased_ref.deref();
-        Some(OwnPtr::from_raw(NonNull::from(&unerased._object.error)).cast::<()>())
+        Some(
+            OwnPtr::from_raw(unsafe {
+                NonNull::new_unchecked(ptr::addr_of!((*unerased_ref.as_ptr())._object.error) as *mut E)
+            })
+            .cast::<()>(),
+        )
     } else {
         None
     }
@@ -701,11 +712,18 @@ where
     C: 'static,
 {
     let unerased_ref = e.cast::<ErrorImpl<ContextError<C, Error>>>();
-    let unerased = unerased_ref.deref();
     if TypeId::of::<C>() == target {
-        Some(OwnPtr::from_raw(NonNull::from(&unerased._object.context)).cast::<()>())
+        // Take a pointer to the C field without going through a shared
+        // reference; see the comment in context_downcast.
+        Some(
+            OwnPtr::from_raw(unsafe {
+                NonNull::new_unchecked(ptr::addr_of!((*unerased_ref.as_ptr())._object.context) as *mut C)
+            })
+            .cast::<()>(),
+        )
     } else {
         // Recurse down the context chain per the inner error's vtable.
+        let unerased = unerased_ref.deref();
         let source = &unerased._object.error;
         unsafe { (vtable(source.inner.ptr).object_downcast)(source.inner, target) }
     }
