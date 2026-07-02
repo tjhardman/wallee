@@ -93,6 +93,7 @@ impl Error {
             object_mut: object_mut::<E>,
             // object_super: object_super::<E>,
             object_boxed: object_boxed::<E>,
+            object_reallocate_boxed: object_reallocate_boxed::<E>,
             object_downcast: object_downcast::<E>,
             object_drop_rest: object_drop_front::<E>,
             object_backtrace: no_backtrace,
@@ -116,6 +117,7 @@ impl Error {
             object_mut: object_mut::<MessageError<M>>,
             // object_super: object_super::<MessageError<M>>,
             object_boxed: object_boxed::<MessageError<M>>,
+            object_reallocate_boxed: object_reallocate_boxed::<MessageError<M>>,
             object_downcast: object_downcast::<M>,
             object_drop_rest: object_drop_front::<M>,
             object_backtrace: no_backtrace,
@@ -140,6 +142,7 @@ impl Error {
             object_mut: object_mut::<DisplayError<M>>,
             // object_super: object_super::<DisplayError<M>>,
             object_boxed: object_boxed::<DisplayError<M>>,
+            object_reallocate_boxed: object_reallocate_boxed::<DisplayError<M>>,
             object_downcast: object_downcast::<M>,
             object_drop_rest: object_drop_front::<M>,
             object_backtrace: no_backtrace,
@@ -165,6 +168,7 @@ impl Error {
             object_mut: object_mut::<ContextError<C, E>>,
             // object_super: object_super::<ContextError<C, E>>,
             object_boxed: object_boxed::<ContextError<C, E>>,
+            object_reallocate_boxed: object_reallocate_boxed::<ContextError<C, E>>,
             object_downcast: context_downcast::<C, E>,
             object_drop_rest: context_drop_rest::<C, E>,
             object_backtrace: no_backtrace,
@@ -174,9 +178,70 @@ impl Error {
         unsafe { Error::construct(error, vtable, backtrace) }
     }
 
+    /// Construct an error object from a type-erased standard library error.
+    ///
+    /// This is mostly useful for interop with other error libraries.
+    ///
+    /// # Example
+    ///
+    /// Here is a skeleton of a library that provides its own error abstraction.
+    /// The pair of `From` impls provide bidirectional support for `?`
+    /// conversion between `Report` and `wallee::Error`.
+    ///
+    /// ```
+    /// use std::error::Error as StdError;
+    ///
+    /// pub struct Report {/* ... */}
+    ///
+    /// impl<E> From<E> for Report
+    /// where
+    ///     E: Into<wallee::Error>,
+    ///     Result<(), E>: wallee::Context<(), E>,
+    /// {
+    ///     fn from(error: E) -> Self {
+    ///         let wallee_error: wallee::Error = error.into();
+    ///         let boxed_error: Box<dyn StdError + Send + Sync + 'static> = wallee_error.into();
+    ///         Report::from_boxed(boxed_error)
+    ///     }
+    /// }
+    ///
+    /// impl From<Report> for wallee::Error {
+    ///     fn from(report: Report) -> Self {
+    ///         let boxed_error: Box<dyn StdError + Send + Sync + 'static> = report.into_boxed();
+    ///         wallee::Error::from_boxed(boxed_error)
+    ///     }
+    /// }
+    ///
+    /// impl Report {
+    ///     fn from_boxed(boxed_error: Box<dyn StdError + Send + Sync + 'static>) -> Self {
+    ///         todo!()
+    ///     }
+    ///     fn into_boxed(self) -> Box<dyn StdError + Send + Sync + 'static> {
+    ///         todo!()
+    ///     }
+    /// }
+    ///
+    /// // Example usage: can use `?` in both directions.
+    /// fn a() -> wallee::Result<()> {
+    ///     b()?;
+    ///     Ok(())
+    /// }
+    /// fn b() -> Result<(), Report> {
+    ///     a()?;
+    ///     Ok(())
+    /// }
+    /// ```
+    #[cold]
+    #[must_use]
+    #[track_caller]
+    pub fn from_boxed(boxed_error: Box<dyn StdError + Send + Sync + 'static>) -> Self {
+        let backtrace = backtrace_if_absent!(&*boxed_error);
+        Error::construct_from_boxed(boxed_error, backtrace)
+    }
+
     #[cold]
     #[track_caller]
-    pub(crate) fn from_boxed(
+    pub(crate) fn construct_from_boxed(
         error: Box<dyn StdError + Send + Sync>,
         backtrace: Option<Backtrace>,
     ) -> Self {
@@ -188,6 +253,7 @@ impl Error {
             object_mut: object_mut::<BoxedError>,
             // object_super: object_super::<BoxedError>,
             object_boxed: object_boxed::<BoxedError>,
+            object_reallocate_boxed: object_reallocate_boxed::<BoxedError>,
             object_downcast: object_downcast::<Box<dyn StdError + Send + Sync>>,
             object_drop_rest: object_drop_front::<Box<dyn StdError + Send + Sync>>,
             object_backtrace: no_backtrace,
@@ -303,6 +369,7 @@ impl Error {
             object_mut: object_mut::<ContextError<C, Error>>,
             // object_super: object_super::<ContextError<C, Error>>,
             object_boxed: object_boxed::<ContextError<C, Error>>,
+            object_reallocate_boxed: object_reallocate_boxed::<ContextError<C, Error>>,
             object_downcast: context_chain_downcast::<C>,
             object_drop_rest: context_chain_drop_rest::<C>,
             object_backtrace: context_backtrace::<C>,
@@ -503,6 +570,46 @@ impl Error {
         }
     }
 
+    /// Convert to a standard library error trait object.
+    ///
+    /// This is implemented as a cheap pointer cast that does not allocate or
+    /// deallocate memory. Like [`from_boxed`][Self::from_boxed], it's useful for
+    /// interop with other error libraries. The same conversion is also
+    /// available as `impl From<wallee::Error> for Box<dyn Error + Send + Sync>`.
+    ///
+    /// If a backtrace was collected during construction of the `wallee::Error`,
+    /// that backtrace remains accessible using the standard library `Error`
+    /// trait's provider API, but as a consequence, the resulting boxed error can
+    /// no longer be downcast to its original underlying type.
+    #[must_use]
+    pub fn into_boxed_dyn_error(self) -> Box<dyn StdError + Send + Sync + 'static> {
+        let outer = ManuallyDrop::new(self);
+        unsafe {
+            // Use vtable to attach ErrorImpl<E>'s native StdError vtable for the
+            // right original type E.
+            (vtable(outer.inner.ptr).object_boxed)(outer.inner)
+        }
+    }
+
+    /// Convert to a standard library error trait object.
+    ///
+    /// Unlike [`into_boxed_dyn_error`][Self::into_boxed_dyn_error], this method
+    /// relocates the underlying error into a new allocation in order to make it
+    /// downcastable to `&E` or `Box<E>` for its original underlying error type.
+    /// Any backtrace collected during construction of the `wallee::Error` is
+    /// discarded.
+    #[must_use]
+    pub fn reallocate_into_boxed_dyn_error_without_backtrace(
+        self,
+    ) -> Box<dyn StdError + Send + Sync + 'static> {
+        let outer = ManuallyDrop::new(self);
+        unsafe {
+            // Use vtable to attach E's native StdError vtable for the right
+            // original type E.
+            (vtable(outer.inner.ptr).object_reallocate_boxed)(outer.inner)
+        }
+    }
+
     #[cfg(error_generic_member_access)]
     pub(crate) fn provide<'a>(&'a self, request: &mut Request<'a>) {
         unsafe { ErrorImpl::provide(self.inner.by_ref(), request) }
@@ -573,6 +680,8 @@ struct ErrorVTable {
     object_mut: unsafe fn(MutPtr<ErrorImpl>) -> &mut (dyn StdError + Send + Sync + 'static),
     // object_super: unsafe fn(RefPtr<ErrorImpl>) -> &(dyn StdError + Send + Sync + 'static),
     object_boxed: unsafe fn(OwnPtr<ErrorImpl>) -> Box<dyn StdError + Send + Sync + 'static>,
+    object_reallocate_boxed:
+        unsafe fn(OwnPtr<ErrorImpl>) -> Box<dyn StdError + Send + Sync + 'static>,
     object_downcast: unsafe fn(OwnPtr<ErrorImpl>, TypeId) -> Option<OwnPtr<()>>,
     object_drop_rest: unsafe fn(OwnPtr<ErrorImpl>, TypeId),
     object_backtrace: unsafe fn(RefPtr<ErrorImpl>) -> Option<&Backtrace>,
@@ -631,6 +740,20 @@ where
     // Attach ErrorImpl<E>'s native StdError vtable. The StdError impl is below.
     let unerased_own = e.cast::<ErrorImpl<E>>();
     unsafe { unerased_own.boxed() }
+}
+
+// Safety: requires layout of *e to match ErrorImpl<E>.
+unsafe fn object_reallocate_boxed<E>(
+    e: OwnPtr<ErrorImpl>,
+) -> Box<dyn StdError + Send + Sync + 'static>
+where
+    E: StdError + Send + Sync + 'static,
+{
+    // Relocate the underlying error E into a fresh allocation carrying E's
+    // native StdError vtable. The wallee wrapper (and its backtrace and
+    // location) is dropped, but the result is downcastable to the original E.
+    let unerased_own = e.cast::<ErrorImpl<E>>();
+    Box::new(unsafe { unerased_own.boxed() }._object)
 }
 
 // Safety: requires layout of *e to match ErrorImpl<E>.
@@ -885,24 +1008,21 @@ where
 impl From<Error> for Box<dyn StdError + Send + Sync + 'static> {
     #[cold]
     fn from(error: Error) -> Self {
-        let outer = ManuallyDrop::new(error);
-        unsafe {
-            // Use vtable to attach ErrorImpl<E>'s native StdError vtable for
-            // the right original type E.
-            (vtable(outer.inner.ptr).object_boxed)(outer.inner)
-        }
+        error.into_boxed_dyn_error()
     }
 }
 
 impl From<Error> for Box<dyn StdError + Send + 'static> {
+    #[cold]
     fn from(error: Error) -> Self {
-        Box::<dyn StdError + Send + Sync>::from(error)
+        error.into_boxed_dyn_error()
     }
 }
 
 impl From<Error> for Box<dyn StdError + 'static> {
+    #[cold]
     fn from(error: Error) -> Self {
-        Box::<dyn StdError + Send + Sync>::from(error)
+        error.into_boxed_dyn_error()
     }
 }
 

@@ -18,6 +18,15 @@ fn test_msg() {
 }
 
 #[test]
+fn test_from_boxed() {
+    let boxed: Box<dyn std::error::Error + Send + Sync> =
+        Box::new(io::Error::new(io::ErrorKind::PermissionDenied, "oh no!"));
+    let (err, file, line) = (Error::from_boxed(boxed), file!(), line!());
+    assert_eq!(err.file(), file);
+    assert_eq!(err.line(), line);
+}
+
+#[test]
 fn test_wallee_macro() {
     let (err, file, line) = (wallee!("oh no!"), file!(), line!());
     assert_eq!(err.file(), file);
