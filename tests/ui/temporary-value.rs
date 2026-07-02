@@ -1,5 +1,5 @@
-use anyhow::anyhow;
+use wallee::wallee;
 
 fn main() {
-    let _ = anyhow!(&String::new());
+    let _ = wallee!(&String::new());
 }

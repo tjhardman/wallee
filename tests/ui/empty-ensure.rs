@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use wallee::{ensure, Result};
 
 fn main() -> Result<()> {
     ensure!();

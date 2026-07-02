@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use wallee::{ensure, Result};
 
 fn main() -> Result<()> {
     // `ensure!` must not partition this into `(false) == (false == true)`

@@ -1,11 +1,11 @@
 #![deny(unused_must_use)]
 
-use anyhow::anyhow;
+use wallee::wallee;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> wallee::Result<()> {
     if true {
         // meant to write bail!
-        anyhow!("it failed");
+        wallee!("it failed");
     }
     Ok(())
 }

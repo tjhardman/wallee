@@ -1,32 +1,33 @@
-error[E0599]: the method `anyhow_kind` exists for reference `&Error`, but its trait bounds were not satisfied
+error[E0599]: the method `wallee_kind` exists for reference `&Error`, but its trait bounds were not satisfied
  --> tests/ui/no-impl.rs:7:13
   |
 4 | struct Error;
-  | ------------ doesn't satisfy `Error: Into<anyhow::Error>`, `Error: anyhow::kind::TraitKind` or `Error: std::fmt::Display`
+  | ------------ doesn't satisfy `Error: std::error::Error`, `Error: std::fmt::Display` or `Error: wallee::kind::StdKind`
 ...
-7 |     let _ = anyhow!(Error);
+7 |     let _ = wallee!(Error);
   |             ^^^^^^^^^^^^^^ method cannot be called on `&Error` due to unsatisfied trait bounds
   |
   = note: the following trait bounds were not satisfied:
-          `Error: Into<anyhow::Error>`
-          which is required by `Error: anyhow::kind::TraitKind`
+          `Error: std::error::Error`
+          which is required by `Error: wallee::kind::StdKind`
           `Error: std::fmt::Display`
-          which is required by `&Error: anyhow::kind::AdhocKind`
-          `&Error: Into<anyhow::Error>`
-          which is required by `&Error: anyhow::kind::TraitKind`
-note: the traits `Into` and `std::fmt::Display` must be implemented
+          which is required by `&Error: wallee::kind::DebugKind`
+          `&Error: std::error::Error`
+          which is required by `&Error: wallee::kind::StdKind`
+note: the traits `std::error::Error` and `std::fmt::Display` must be implemented
  --> $RUST/core/src/fmt/mod.rs
   |
-  | pub trait Display {
-  | ^^^^^^^^^^^^^^^^^
+  | pub trait Display: PointeeSized {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
- ::: $RUST/core/src/convert/mod.rs
+ ::: $RUST/core/src/error.rs
   |
-  | pub trait Into<T>: Sized {
-  | ^^^^^^^^^^^^^^^^^^^^^^^^
+  | pub trait Error: Debug + Display {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   = help: items from traits can only be used if the trait is implemented and in scope
-  = note: the following traits define an item `anyhow_kind`, perhaps you need to implement one of them:
-          candidate #1: `anyhow::kind::AdhocKind`
-          candidate #2: `anyhow::kind::TraitKind`
-          candidate #3: `anyhow::kind::BoxedKind`
-  = note: this error originates in the macro `anyhow` (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: the following traits define an item `wallee_kind`, perhaps you need to implement one of them:
+          candidate #1: `wallee::kind::BoxedKind`
+          candidate #2: `wallee::kind::DebugKind`
+          candidate #3: `wallee::kind::ErrorKind`
+          candidate #4: `wallee::kind::StdKind`
+  = note: this error originates in the macro `wallee` (in Nightly builds, run with -Z macro-backtrace for more info)

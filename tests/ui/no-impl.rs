@@ -1,8 +1,8 @@
-use anyhow::anyhow;
+use wallee::wallee;
 
 #[derive(Debug)]
 struct Error;
 
 fn main() {
-    let _ = anyhow!(Error);
+    let _ = wallee!(Error);
 }
