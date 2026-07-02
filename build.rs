@@ -7,6 +7,10 @@ use std::str;
 fn main() {
     println!("cargo:rerun-if-changed=build/probe.rs");
 
+    println!("cargo:rustc-check-cfg=cfg(doc_cfg)");
+    println!("cargo:rustc-check-cfg=cfg(error_generic_member_access)");
+    println!("cargo:rustc-check-cfg=cfg(wallee_nightly_testing)");
+
     let consider_rustc_bootstrap;
     if compile_probe(false) {
         // This is a nightly or dev compiler, so it supports unstable
