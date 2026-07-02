@@ -96,6 +96,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<E>,
             object_downcast: object_downcast::<E>,
             object_drop_rest: object_drop_front::<E>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: no_backtrace,
         };
 
@@ -120,6 +121,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<MessageError<M>>,
             object_downcast: object_downcast::<M>,
             object_drop_rest: object_drop_front::<M>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: no_backtrace,
         };
 
@@ -145,6 +147,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<DisplayError<M>>,
             object_downcast: object_downcast::<M>,
             object_drop_rest: object_drop_front::<M>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: no_backtrace,
         };
 
@@ -171,6 +174,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<ContextError<C, E>>,
             object_downcast: context_downcast::<C, E>,
             object_drop_rest: context_drop_rest::<C, E>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: no_backtrace,
         };
 
@@ -256,6 +260,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<BoxedError>,
             object_downcast: object_downcast::<Box<dyn StdError + Send + Sync>>,
             object_drop_rest: object_drop_front::<Box<dyn StdError + Send + Sync>>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: no_backtrace,
         };
 
@@ -372,6 +377,7 @@ impl Error {
             object_reallocate_boxed: object_reallocate_boxed::<ContextError<C, Error>>,
             object_downcast: context_chain_downcast::<C>,
             object_drop_rest: context_chain_drop_rest::<C>,
+            #[cfg(not(error_generic_member_access))]
             object_backtrace: context_backtrace::<C>,
         };
 
@@ -612,7 +618,7 @@ impl Error {
 
     #[cfg(error_generic_member_access)]
     pub(crate) fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        unsafe { ErrorImpl::provide(self.inner.by_ref(), request) }
+        unsafe { ErrorImpl::provide(self.inner.as_ref(), request) }
     }
 
     // Called by thiserror when you have `#[source] wallee::Error`. This provide
@@ -684,6 +690,7 @@ struct ErrorVTable {
         unsafe fn(OwnPtr<ErrorImpl>) -> Box<dyn StdError + Send + Sync + 'static>,
     object_downcast: unsafe fn(OwnPtr<ErrorImpl>, TypeId) -> Option<OwnPtr<()>>,
     object_drop_rest: unsafe fn(OwnPtr<ErrorImpl>, TypeId),
+    #[cfg(not(error_generic_member_access))]
     object_backtrace: unsafe fn(RefPtr<ErrorImpl>) -> Option<&Backtrace>,
 }
 
@@ -777,6 +784,7 @@ where
     }
 }
 
+#[cfg(not(error_generic_member_access))]
 fn no_backtrace(e: RefPtr<'_, ErrorImpl>) -> Option<&'_ Backtrace> {
     let _ = e;
     None
@@ -876,6 +884,7 @@ where
 }
 
 // Safety: requires layout of *e to match ErrorImpl<ContextError<C, Error>>.
+#[cfg(not(error_generic_member_access))]
 #[allow(clippy::unnecessary_wraps)]
 unsafe fn context_backtrace<C>(e: RefPtr<'_, ErrorImpl>) -> Option<&'_ Backtrace>
 where
@@ -966,7 +975,7 @@ impl ErrorImpl {
 
     #[cfg(error_generic_member_access)]
     unsafe fn provide<'a>(this: RefPtr<'a, Self>, request: &mut Request<'a>) {
-        if let Some(backtrace) = unsafe { &this.deref().backtrace } {
+        if let Some(backtrace) = &this.as_ref().backtrace {
             request.provide_ref(backtrace);
         }
         unsafe { Self::error(this) }.provide(request);

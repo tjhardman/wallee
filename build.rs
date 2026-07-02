@@ -11,34 +11,44 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(error_generic_member_access)");
     println!("cargo:rustc-check-cfg=cfg(wallee_nightly_testing)");
 
+    let error_generic_member_access;
     let consider_rustc_bootstrap;
     if compile_probe(false) {
         // This is a nightly or dev compiler, so it supports unstable
         // features regardless of RUSTC_BOOTSTRAP. No need to rerun build
         // script if RUSTC_BOOTSTRAP is changed.
+        error_generic_member_access = true;
         consider_rustc_bootstrap = false;
     } else if let Some(rustc_bootstrap) = env::var_os("RUSTC_BOOTSTRAP") {
         if compile_probe(true) {
             // This is a stable or beta compiler for which the user has set
             // RUSTC_BOOTSTRAP to turn on unstable features. Rerun build
             // script if they change it.
+            error_generic_member_access = true;
             consider_rustc_bootstrap = true;
         } else if rustc_bootstrap == "1" {
             // This compiler does not support the generic member access API
             // in the form that wallee expects. No need to pay attention to
             // RUSTC_BOOTSTRAP.
+            error_generic_member_access = false;
             consider_rustc_bootstrap = false;
         } else {
             // This is a stable or beta compiler for which RUSTC_BOOTSTRAP
             // is set to restrict the use of unstable features by this
             // crate.
+            error_generic_member_access = false;
             consider_rustc_bootstrap = true;
         }
     } else {
         // Without RUSTC_BOOTSTRAP, this compiler does not support the
         // generic member access API in the form that wallee expects, but
         // try again if the user turns on unstable features.
+        error_generic_member_access = false;
         consider_rustc_bootstrap = true;
+    }
+
+    if error_generic_member_access {
+        println!("cargo:rustc-cfg=error_generic_member_access");
     }
 
     if consider_rustc_bootstrap {
