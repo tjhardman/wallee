@@ -194,7 +194,7 @@
 //!   ```
 //!
 
-#![doc(html_root_url = "https://docs.rs/wallee/1.0.79")]
+#![doc(html_root_url = "https://docs.rs/wallee/0.2.7")]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(error_generic_member_access, feature(error_generic_member_access))]
 #![deny(dead_code, unused_imports, unused_mut)]
