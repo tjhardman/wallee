@@ -12,12 +12,12 @@ repository = "https://github.com/tjhardman/wallee"
 # rust-version = "1.85"
 
 [dev-dependencies]
-futures = { version = "0.3", default-features = false }
-rustversion = "1.0"
-syn = { version = "2.0", features = ["full"] }
-thiserror = "2.0.12"
+futures = { version = "0.3.32", default-features = false }
+rustversion = "1.0.23"
+syn = { version = "2.0.118", features = ["full"] }
+thiserror = "2.0.18"
 # anyhow = "1.0.98"
-trybuild = { version = "1.0.110", features = ["diff"] }
+trybuild = { version = "1.0.118", features = ["diff"] }
 
 [lib]
 doc-scrape-examples = false
