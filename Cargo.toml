@@ -1,6 +1,6 @@
 [package]
 name = "wallee"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["David Tolnay <dtolnay@gmail.com>", "Todd Hardman <todd.hardman@gmail.com>"]
 categories = ["rust-patterns", "no-std"]
 description = "Flexible concrete Error type built on std::error::Error with caller location tracking"
